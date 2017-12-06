@@ -13,6 +13,13 @@ class SOM:
         self.sigma_0 = sigma_0
         self.neurons = None
 
+        # Erstelle Map für die Klassen zu den Neuronen
+        self.neuron_classes = [n_rows]
+        for x in range(n_rows):
+            self.neuron_classes[x] = [n_cols]
+            for y in range[n_cols]:
+                self.neuron_classes[y] = {}
+
     def fit(self, X):
         # 1. Initialisierung der Neuronen (zufällig, minmax)
         # print(len(X[0]))

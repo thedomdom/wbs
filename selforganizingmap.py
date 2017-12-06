@@ -1,5 +1,6 @@
 import numpy as np
 import sklearn.datasets
+import sklearn.metrics as metrics
 import random
 import sys
 
@@ -22,7 +23,6 @@ class SOM:
 
     def fit(self, X, y):
         # 1. Initialisierung der Neuronen (zufällig, minmax)
-        # print(len(X[0]))
         self.neurons = np.random.uniform(size=(self.n_rows, self.n_cols, len(X[0])))
 
         for t in range(self.t_max):
@@ -53,8 +53,6 @@ class SOM:
             for y_coord in range(self.n_cols):
                 self.set_best_class(x_coord, y_coord)
 
-        # print(self.neuron_classes)
-
     def set_best_class(self, x_coord, y_coord):
         classes_dict = self.neuron_classes[x_coord][y_coord]
         sorted_amounts = sorted(classes_dict.values(), reverse=True)
@@ -76,9 +74,11 @@ class SOM:
     def alpha(self, t):
         return self.alpha_0 * (1 - t / self.t_max)
 
+    def sigma(self, t):
+        return self.sigma_0 * (1 - t / self.t_max)
+
     def h(self, c1, c2, t):
-        sigma_t = self.sigma_0 * (1 - t / self.t_max)
-        return np.exp(- np.linalg.norm(c1 - c2) / (2 * sigma_t ** 2))
+        return np.exp(- np.linalg.norm(c1 - c2) / (2 * self.sigma(t) ** 2))
 
     def best_matching_unit(self, x):
         coordinate = None
@@ -105,6 +105,7 @@ class SOM:
         for x_coord, neuron_col in enumerate(self.neurons):
             for y_coord, neuron in enumerate(neuron_col):
                 dist = np.linalg.norm(np.array([x_coord, y_coord]) - coordinate)
+                # Alternative: dist <= sigma(t)
                 if dist < self.n_rows * self.n_cols / 8:
                     neighbor_coordinates.append([x_coord, y_coord])
         return neighbor_coordinates
@@ -113,13 +114,11 @@ class SOM:
         return self.best_matching_unit(x)
 
     def predict(self, X):
-        y_pred = []
+        y_predicted = []
         for x in X:
             x_coord, y_coord = self.classify(x)
-            # print(x_coord, y_coord)
-            # print(self.neuron_classes[x_coord][y_coord])
-            y_pred.append(self.neuron_classes[x_coord][y_coord])
-        return y_pred
+            y_predicted.append(self.neuron_classes[x_coord][y_coord])
+        return y_predicted
 
 
 if __name__ == "__main__":
@@ -129,6 +128,10 @@ if __name__ == "__main__":
     print(y.ravel().shape)
 
     my_som = SOM(n_rows=7, n_cols=7, iterations_max=5000, alpha_0=0.9, sigma_0=1)
-    my_som.fit(X, y)
 
-    print(my_som.predict(y))
+    indices_train = np.random.randint(150, size=110)
+    my_som.fit(X[indices_train, :], y[indices_train])
+
+    indices_evaluate = [index for index in list(range(150)) if (index not in list(indices_train))]
+
+    print(metrics.accuracy_score(y[indices_evaluate], my_som.predict(X[indices_evaluate])))

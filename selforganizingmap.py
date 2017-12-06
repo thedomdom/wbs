@@ -14,23 +14,28 @@ class SOM:
         self.neurons = None
 
         # Erstelle Map für die Klassen zu den Neuronen
-        self.neuron_classes = [n_rows]
+        self.neuron_classes = {}
         for x in range(n_rows):
-            self.neuron_classes[x] = [n_cols]
-            for y in range[n_cols]:
-                self.neuron_classes[y] = {}
+            self.neuron_classes[x] = {}
+            for y in range(n_cols):
+                self.neuron_classes[x][y] = {}
 
-    def fit(self, X):
+    def fit(self, X, y):
         # 1. Initialisierung der Neuronen (zufällig, minmax)
         # print(len(X[0]))
         self.neurons = np.random.uniform(size=(self.nRows, self.nCols, len(X[0])))
 
         for t in range(self.t_max):
             # Ein Datenpunkt wird zufällig dem Datensatz entnommen
-            x = random.choice(X)
+            x_index = random.choice(range(len(X)))
+            x = X[x_index]
+            x_class = y[x_index]
 
             # 2. Competition: Das nächste Neuron, das zum aktuellen Datenpunkt passt (BMU)
             bmu_coord = self.best_matching_unit(x)
+
+            # Der BMU die Klasse des Datenpunkts zuweisen
+            self.assign_class(bmu_coord, x_class)
 
             # 3. Cooperation: Benachbarte Neuronen werden über einen "Nachbarschafts-Radius" gefunden
             neighbor_coords = self.get_neighbor_coordinates(bmu_coord)
@@ -42,6 +47,13 @@ class SOM:
                 neighbor = self.neurons[neighbor_coord[0]][neighbor_coord[1]]
                 neighbor = neighbor + self.alpha(t) * self.h(neighbor_coord, bmu_coord, t) * (x - neighbor)
                 self.neurons[neighbor_coord[0]][neighbor_coord[1]] = neighbor
+
+    def assign_class(self, coord, coord_class):
+        x, y = coord[0], coord[1]
+        if coord_class in self.neuron_classes[x][y]:
+            self.neuron_classes[x][y][coord_class] += 1
+        else:
+            self.neuron_classes[x][y][coord_class] = 1
 
     def alpha(self, t):
         return self.alpha_0 * (1 - t / self.t_max)
@@ -90,4 +102,4 @@ if __name__ == "__main__":
     print(y.ravel().shape)
 
     my_som = SOM()
-    my_som.fit(X)
+    my_som.fit(X, y)

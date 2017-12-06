@@ -34,13 +34,9 @@ class SOM:
             # Ein Datenpunkt wird zufällig dem Datensatz entnommen
             x_index = random.choice(range(len(X)))
             x = X[x_index]
-            x_class = y[x_index]
 
             # 2. Competition: Das nächste Neuron, das zum aktuellen Datenpunkt passt (BMU)
             bmu_coord = self.best_matching_unit(x)
-
-            # Der BMU die Klasse des Datenpunkts zuweisen
-            self.assign_class(bmu_coord, x_class, t)
 
             # 3. Cooperation: Benachbarte Neuronen werden über einen "Nachbarschafts-Radius" gefunden
             neighbor_coords = self.get_neighbor_coordinates(bmu_coord, t)
@@ -52,6 +48,14 @@ class SOM:
                 neighbor = self.neurons[neighbor_coord[0]][neighbor_coord[1]]
                 neighbor = neighbor + self.alpha(t) * self.h(neighbor_coord, bmu_coord, t) * (x - neighbor)
                 self.neurons[neighbor_coord[0]][neighbor_coord[1]] = neighbor
+
+        # Den Neuronen die jeweiligen Klassen zuordnen
+        for x_index in range(len(X)):
+            x = X[x_index]
+            x_class = y[x_index]
+            x_coord = self.classify(x)
+            # Der BMU die Klasse des Datenpunkts zuweisen
+            self.assign_class(x_coord, x_class)
 
         # Finde zu jedem Neuron die meist-zugewiesene Klasse
         for x_coord in range(self.n_rows):
@@ -69,12 +73,12 @@ class SOM:
                 self.neuron_classes[x_coord][y_coord] = class_number
                 break
 
-    def assign_class(self, coord, coord_class, t):
+    def assign_class(self, coord, coord_class):
         x_coord, y_coord = coord[0], coord[1]
         if coord_class in self.neuron_classes[x_coord][y_coord]:
-            self.neuron_classes[x_coord][y_coord][coord_class] += t/self.t_max
+            self.neuron_classes[x_coord][y_coord][coord_class] += 1
         else:
-            self.neuron_classes[x_coord][y_coord][coord_class] = t/self.t_max
+            self.neuron_classes[x_coord][y_coord][coord_class] = 1
 
     def alpha(self, t):
         return self.alpha_0 * (1 - t / self.t_max)

@@ -22,11 +22,15 @@ class SOM:
             for y_coord in range(self.n_cols):
                 self.neuron_classes[x_coord][y_coord] = {}
 
+        self.progress_bar = list(range(11))
+
     def fit(self, X, y):
         # 1. Initialisierung der Neuronen (zufällig, minmax)
         self.neurons = np.random.uniform(size=(self.n_rows, self.n_cols, len(X[0])))
 
         for t in range(self.t_max):
+            self.print_progress(t)
+
             # Ein Datenpunkt wird zufällig dem Datensatz entnommen
             x_index = random.choice(range(len(X)))
             x = X[x_index]
@@ -36,7 +40,7 @@ class SOM:
             bmu_coord = self.best_matching_unit(x)
 
             # Der BMU die Klasse des Datenpunkts zuweisen
-            self.assign_class(bmu_coord, x_class)
+            self.assign_class(bmu_coord, x_class, t)
 
             # 3. Cooperation: Benachbarte Neuronen werden über einen "Nachbarschafts-Radius" gefunden
             neighbor_coords = self.get_neighbor_coordinates(bmu_coord, t)
@@ -65,12 +69,12 @@ class SOM:
                 self.neuron_classes[x_coord][y_coord] = class_number
                 break
 
-    def assign_class(self, coord, coord_class):
+    def assign_class(self, coord, coord_class, t):
         x_coord, y_coord = coord[0], coord[1]
         if coord_class in self.neuron_classes[x_coord][y_coord]:
-            self.neuron_classes[x_coord][y_coord][coord_class] += 1
+            self.neuron_classes[x_coord][y_coord][coord_class] += t/self.t_max
         else:
-            self.neuron_classes[x_coord][y_coord][coord_class] = 1
+            self.neuron_classes[x_coord][y_coord][coord_class] = t/self.t_max
 
     def alpha(self, t):
         return self.alpha_0 * (1 - t / self.t_max)
@@ -128,6 +132,15 @@ class SOM:
 
     def score(self, X, y_true):
         return metrics.accuracy_score(y_true, self.predict(X))
+
+    def print_progress(self, t):
+        if t/(self.t_max-1) >= self.progress_bar[0] / 10:
+            print(self.progress_bar[0] * 10, "%", sep='', end=' ', flush=True)
+            self.progress_bar.pop(0)
+
+            if t == self.t_max-1:
+                print()
+
 
 if __name__ == "__main__":
     (X, y) = sklearn.datasets.load_iris(return_X_y=True)

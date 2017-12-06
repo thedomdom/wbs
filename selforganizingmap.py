@@ -38,7 +38,7 @@ class SOM:
             self.assign_class(bmu_coord, x_class)
 
             # 3. Cooperation: Benachbarte Neuronen werden über einen "Nachbarschafts-Radius" gefunden
-            neighbor_coords = self.get_neighbor_coordinates(bmu_coord)
+            neighbor_coords = self.get_neighbor_coordinates(bmu_coord, t)
 
             # 4. Adaptation: Benachbarte Neuronen werden abhängig von ihrem Abstand
             # auf der Karte zum Datenpunkt "hingezogen" --> Anpassung der Gewichte
@@ -100,13 +100,14 @@ class SOM:
         # https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.amin.html#numpy.amin
         pass
 
-    def get_neighbor_coordinates(self, coordinate):
+    def get_neighbor_coordinates(self, coordinate, t):
         neighbor_coordinates = []
         for x_coord, neuron_col in enumerate(self.neurons):
             for y_coord, neuron in enumerate(neuron_col):
                 dist = np.linalg.norm(np.array([x_coord, y_coord]) - coordinate)
-                # Alternative: dist <= sigma(t)
-                if dist < self.n_rows * self.n_cols / 8:
+                # Alternative:
+                if dist <= self.sigma(t):
+                # if dist < self.n_rows * self.n_cols / 8:
                     neighbor_coordinates.append([x_coord, y_coord])
         return neighbor_coordinates
 

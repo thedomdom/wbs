@@ -6,8 +6,8 @@ import sys
 
 class SOM:
     def __init__(self, n_rows=5, n_cols=5, iterations_max=10, alpha_0=0.5, sigma_0=1):
-        self.nRows = n_rows
-        self.nCols = n_cols
+        self.n_rows = n_rows
+        self.n_cols = n_cols
         self.t_max = iterations_max
         self.alpha_0 = alpha_0
         self.sigma_0 = sigma_0
@@ -15,15 +15,15 @@ class SOM:
 
         # Erstelle Map für die Klassen zu den Neuronen
         self.neuron_classes = {}
-        for x in range(n_rows):
-            self.neuron_classes[x] = {}
-            for y in range(n_cols):
-                self.neuron_classes[x][y] = {}
+        for x_coord in range(self.n_rows):
+            self.neuron_classes[x_coord] = {}
+            for y_coord in range(self.n_cols):
+                self.neuron_classes[x_coord][y_coord] = {}
 
     def fit(self, X, y):
         # 1. Initialisierung der Neuronen (zufällig, minmax)
         # print(len(X[0]))
-        self.neurons = np.random.uniform(size=(self.nRows, self.nCols, len(X[0])))
+        self.neurons = np.random.uniform(size=(self.n_rows, self.n_cols, len(X[0])))
 
         for t in range(self.t_max):
             # Ein Datenpunkt wird zufällig dem Datensatz entnommen
@@ -48,12 +48,30 @@ class SOM:
                 neighbor = neighbor + self.alpha(t) * self.h(neighbor_coord, bmu_coord, t) * (x - neighbor)
                 self.neurons[neighbor_coord[0]][neighbor_coord[1]] = neighbor
 
+        # Finde zu jedem Neuron die meist-zugewiesene Klasse
+        for x_coord in range(self.n_rows):
+            for y_coord in range(self.n_cols):
+                self.set_best_class(x_coord, y_coord)
+
+        # print(self.neuron_classes)
+
+    def set_best_class(self, x_coord, y_coord):
+        classes_dict = self.neuron_classes[x_coord][y_coord]
+        sorted_amounts = sorted(classes_dict.values(), reverse=True)
+
+        self.neuron_classes[x_coord][y_coord] = -1
+
+        for class_number, amount in classes_dict.items():
+            if amount == sorted_amounts[0]:
+                self.neuron_classes[x_coord][y_coord] = class_number
+                break
+
     def assign_class(self, coord, coord_class):
-        x, y = coord[0], coord[1]
-        if coord_class in self.neuron_classes[x][y]:
-            self.neuron_classes[x][y][coord_class] += 1
+        x_coord, y_coord = coord[0], coord[1]
+        if coord_class in self.neuron_classes[x_coord][y_coord]:
+            self.neuron_classes[x_coord][y_coord][coord_class] += 1
         else:
-            self.neuron_classes[x][y][coord_class] = 1
+            self.neuron_classes[x_coord][y_coord][coord_class] = 1
 
     def alpha(self, t):
         return self.alpha_0 * (1 - t / self.t_max)
@@ -87,12 +105,21 @@ class SOM:
         for x_coord, neuron_col in enumerate(self.neurons):
             for y_coord, neuron in enumerate(neuron_col):
                 dist = np.linalg.norm(np.array([x_coord, y_coord]) - coordinate)
-                if dist < self.nRows * self.nCols / 8:
+                if dist < self.n_rows * self.n_cols / 8:
                     neighbor_coordinates.append([x_coord, y_coord])
         return neighbor_coordinates
 
     def classify(self, x):
         return self.best_matching_unit(x)
+
+    def predict(self, X):
+        y_pred = []
+        for x in X:
+            x_coord, y_coord = self.classify(x)
+            # print(x_coord, y_coord)
+            # print(self.neuron_classes[x_coord][y_coord])
+            y_pred.append(self.neuron_classes[x_coord][y_coord])
+        return y_pred
 
 
 if __name__ == "__main__":
@@ -101,5 +128,7 @@ if __name__ == "__main__":
     print(X.shape)
     print(y.ravel().shape)
 
-    my_som = SOM()
+    my_som = SOM(n_rows=7, n_cols=7, iterations_max=5000, alpha_0=0.9, sigma_0=1)
     my_som.fit(X, y)
+
+    print(my_som.predict(y))

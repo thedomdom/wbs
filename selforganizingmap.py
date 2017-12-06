@@ -6,12 +6,13 @@ import sys
 
 
 class SOM:
-    def __init__(self, n_rows=5, n_cols=5, iterations_max=10, alpha_0=0.5, sigma_0=1):
+    def __init__(self, n_rows=5, n_cols=5, iterations_max=10, alpha_0=0.5, sigma_0=1, neighbor_function='gauss'):
         self.n_rows = n_rows
         self.n_cols = n_cols
         self.t_max = iterations_max
         self.alpha_0 = alpha_0
         self.sigma_0 = sigma_0
+        self.neighbor_function = neighbor_function
         self.neurons = None
 
         # Erstelle Map für die Klassen zu den Neuronen
@@ -105,9 +106,13 @@ class SOM:
         for x_coord, neuron_col in enumerate(self.neurons):
             for y_coord, neuron in enumerate(neuron_col):
                 dist = np.linalg.norm(np.array([x_coord, y_coord]) - coordinate)
-                # Alternative:
-                if dist <= self.sigma(t):
-                # if dist < self.n_rows * self.n_cols / 8:
+                # setting threshold depending on neighbor function
+                if self.neighbor_function == 'gauss':
+                    threshold = self.sigma(t)
+                else:
+                    threshold = self.n_rows * self.n_cols / int(self.neighbor_function)
+                # appending neurons inside threshold as neighbors
+                if dist <= threshold:
                     neighbor_coordinates.append([x_coord, y_coord])
         return neighbor_coordinates
 
@@ -121,18 +126,18 @@ class SOM:
             y_predicted.append(self.neuron_classes[x_coord][y_coord])
         return y_predicted
 
+    def score(self, X, y_true):
+        return metrics.accuracy_score(y_true, self.predict(X))
 
 if __name__ == "__main__":
     (X, y) = sklearn.datasets.load_iris(return_X_y=True)
+    indices_train = np.random.randint(150, size=110)
+    indices_evaluate = [index for index in list(range(150)) if (index not in list(indices_train))]
 
     print(X.shape)
     print(y.ravel().shape)
 
-    my_som = SOM(n_rows=7, n_cols=7, iterations_max=5000, alpha_0=0.9, sigma_0=1)
-
-    indices_train = np.random.randint(150, size=110)
+    my_som = SOM(n_rows=7, n_cols=7, iterations_max=5000, alpha_0=0.9, sigma_0=1, neighbor_function='8')
     my_som.fit(X[indices_train, :], y[indices_train])
 
-    indices_evaluate = [index for index in list(range(150)) if (index not in list(indices_train))]
-
-    print(metrics.accuracy_score(y[indices_evaluate], my_som.predict(X[indices_evaluate])))
+    print(my_som.score(X[indices_evaluate], y[indices_evaluate]))
